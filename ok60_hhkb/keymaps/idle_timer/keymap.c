@@ -72,7 +72,7 @@ void matrix_scan_kb(void)
 	{
 		if (!is_rgblight_sleeping && (timer_elapsed32(rgblight_idle_timer) > 300000))
 		{
-			rgblight_disable();
+			rgblight_disable_noeeprom();
 			is_rgblight_sleeping = true;
 		}
 	}
@@ -99,7 +99,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 	{
 		if (is_rgblight_sleeping)
 		{
-			rgblight_enable();
+			rgblight_enable_noeeprom();
 			is_rgblight_sleeping = false;
 		}
 		rgblight_idle_timer = timer_read32();
