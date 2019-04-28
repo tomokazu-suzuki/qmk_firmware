@@ -4,8 +4,16 @@
 
 ## OK60 HHKB
 
-    make ok60_hhkb:default
+* default
+    - CapslockキーをMO(1) + Tabキーに割り当て
 
+    `make ok60_hhkb:default`
+
+* idle_timer
+    - 30秒でバックライトが自動消灯
+    - 5分でRGBライトが自動消灯
+    
+    `make ok60_hhkb:idle_timer`
 
 ## Keymap
 
