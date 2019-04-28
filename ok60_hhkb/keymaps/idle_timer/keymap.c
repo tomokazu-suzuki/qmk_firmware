@@ -18,7 +18,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 // Variables for idle timer
-uint16_t rgblight_idle_timer;
+uint32_t rgblight_idle_timer;
 uint16_t backlight_idle_timer;
 bool is_rgblight_on = false;
 bool is_backlight_on = false;
@@ -70,7 +70,7 @@ void matrix_scan_kb(void)
 	// runs every cycle (a lot)
 	if (is_rgblight_on)
 	{
-		if (!is_rgblight_sleeping && (timer_elapsed(rgblight_idle_timer) > 300000))
+		if (!is_rgblight_sleeping && (timer_elapsed32(rgblight_idle_timer) > 300000))
 		{
 			rgblight_disable();
 			is_rgblight_sleeping = true;
@@ -102,7 +102,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 			rgblight_enable();
 			is_rgblight_sleeping = false;
 		}
-		rgblight_idle_timer = timer_read();
+		rgblight_idle_timer = timer_read32();
 	}
 
 	if (is_backlight_on)
