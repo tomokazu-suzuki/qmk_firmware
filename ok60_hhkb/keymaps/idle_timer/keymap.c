@@ -24,6 +24,8 @@ bool is_rgblight_on = false;
 bool is_backlight_on = false;
 bool is_rgblight_sleeping = false;
 bool is_bglight_sleeping = false;
+uint8_t init_bglight_level;
+uint8_t current_bglight_level;
 
 void rgblight_toggle_ok60_hhkb(void)
 {
@@ -58,6 +60,8 @@ void matrix_init_kb(void)
 	is_backlight_on = true;
 	is_rgblight_sleeping = false;
 	is_bglight_sleeping = false;
+	init_bglight_level = get_backlight_level();
+	current_bglight_level = init_bglight_level;
 	backlight_enable();
 #endif
 
@@ -82,6 +86,8 @@ void matrix_scan_kb(void)
 		if (!is_bglight_sleeping && (timer_elapsed(backlight_idle_timer) > 30000))
 		{
 			backlight_disable();
+			current_bglight_level = get_backlight_level();
+			backlight_level(0);
 			is_bglight_sleeping = true;
 		}
 	}
@@ -109,7 +115,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 	{
 		if (is_bglight_sleeping)
 		{
-			backlight_enable();
+			backlight_level(current_bglight_level);
 			is_bglight_sleeping = false;
 		}
 		backlight_idle_timer = timer_read();
@@ -126,11 +132,35 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 #endif
 		return false;
 		break;
-	case BACKLIGHT_TOGGLE:
+	case BL_TOGG:
 #ifdef BACKLIGHT_ENABLE
 		if (record->event.pressed)
 		{
 			backlight_toggle_ok60_hhkb();
+		}
+#endif
+		return false;
+		break;
+	case BL_INC:
+#ifdef BACKLIGHT_ENABLE
+		if (record->event.pressed)
+		{
+			if (is_backlight_on)
+			{
+				backlight_increase();
+			}
+		}
+#endif
+		return false;
+		break;
+	case BL_DEC:
+#ifdef BACKLIGHT_ENABLE
+		if (record->event.pressed)
+		{
+			if (is_backlight_on)
+			{
+				backlight_decrease();
+			}
 		}
 #endif
 		return false;
