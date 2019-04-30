@@ -18,17 +18,22 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 // Variables for idle timer
+#ifdef RGBLIGHT_ENABLE
 uint32_t rgblight_idle_timer;
-uint16_t backlight_idle_timer;
 bool is_rgblight_on = false;
-bool is_backlight_on = false;
 bool is_rgblight_sleeping = false;
-bool is_bglight_sleeping = false;
-uint8_t init_bglight_level;
-uint8_t current_bglight_level;
+#endif
+#ifdef BACKLIGHT_ENABLE
+uint16_t backlight_idle_timer;
+bool is_backlight_on = false;
+bool is_backlight_sleeping = false;
+uint8_t init_backlight_level;
+uint8_t current_backlight_level;
+#endif
 
 void rgblight_toggle_ok60_hhkb(void)
 {
+#ifdef RGBLIGHT_ENABLE
 	if (is_rgblight_on)
 	{
 		rgblight_disable();
@@ -38,10 +43,12 @@ void rgblight_toggle_ok60_hhkb(void)
 		rgblight_enable();
 	}
 	is_rgblight_on = !is_rgblight_on;
+#endif
 }
 
 void backlight_toggle_ok60_hhkb(void)
 {
+#ifdef BACKLIGHT_ENABLE
 	if (is_backlight_on)
 	{
 		backlight_disable();
@@ -51,20 +58,22 @@ void backlight_toggle_ok60_hhkb(void)
 		backlight_enable();
 	}
 	is_backlight_on = !is_backlight_on;
+#endif
 }
 
 void matrix_init_kb(void)
 {
 #ifdef RGBLIGHT_ENABLE
 	is_rgblight_on = true;
-	is_backlight_on = true;
 	is_rgblight_sleeping = false;
-	is_bglight_sleeping = false;
-	init_bglight_level = get_backlight_level();
-	current_bglight_level = init_bglight_level;
+#endif
+#ifdef BACKLIGHT_ENABLE
+	is_backlight_on = true;
+	is_backlight_sleeping = false;
+	init_backlight_level = get_backlight_level();
+	current_backlight_level = init_backlight_level;
 	backlight_enable();
 #endif
-
 	matrix_init_user();
 }
 
@@ -72,6 +81,7 @@ void matrix_scan_kb(void)
 {
 	// put your looping keyboard code here
 	// runs every cycle (a lot)
+#ifdef RGBLIGHT_ENABLE
 	if (is_rgblight_on)
 	{
 		if (!is_rgblight_sleeping && (timer_elapsed32(rgblight_idle_timer) > 300000))
@@ -80,17 +90,19 @@ void matrix_scan_kb(void)
 			is_rgblight_sleeping = true;
 		}
 	}
-
+#endif
+#ifdef BACKLIGHT_ENABLE
 	if (is_backlight_on)
 	{
-		if (!is_bglight_sleeping && (timer_elapsed(backlight_idle_timer) > 30000))
+		if (!is_backlight_sleeping && (timer_elapsed(backlight_idle_timer) > 30000))
 		{
 			backlight_disable();
-			current_bglight_level = get_backlight_level();
+			current_backlight_level = get_backlight_level();
 			backlight_level(0);
-			is_bglight_sleeping = true;
+			is_backlight_sleeping = true;
 		}
 	}
+#endif
 
 	matrix_scan_user();
 }
@@ -101,6 +113,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 	// runs for every action, just before processing by the firmware
 
 	// Update the timer for idle
+#ifdef RGBLIGHT_ENABLE
 	if (is_rgblight_on)
 	{
 		if (is_rgblight_sleeping)
@@ -110,16 +123,19 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 		}
 		rgblight_idle_timer = timer_read32();
 	}
+#endif
 
+#ifdef BACKLIGHT_ENABLE
 	if (is_backlight_on)
 	{
-		if (is_bglight_sleeping)
+		if (is_backlight_sleeping)
 		{
-			backlight_level(current_bglight_level);
-			is_bglight_sleeping = false;
+			backlight_level(current_backlight_level);
+			is_backlight_sleeping = false;
 		}
 		backlight_idle_timer = timer_read();
 	}
+#endif
 
 	switch (keycode)
 	{
