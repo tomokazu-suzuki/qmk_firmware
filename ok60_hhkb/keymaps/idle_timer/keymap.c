@@ -1,5 +1,7 @@
 #include QMK_KEYBOARD_H
 
+extern rgblight_config_t rgblight_config;
+
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
 	[0] = LAYOUT_60_hhkb(
@@ -18,15 +20,28 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 };
 
 // Variables for idle timer
+#ifdef RGBLIGHT_ENABLE
 uint32_t rgblight_idle_timer;
+uint16_t rgblight_sleep_animation_timer;
+bool is_rgblight_on;
+bool is_rgblight_sleeping;
+bool is_rgblight_sleep_animation;
+uint8_t current_rgblight_hue;
+uint8_t current_rgblight_sat;
+uint8_t current_rgblight_val;
+#endif
+#ifdef BACKLIGHT_ENABLE
 uint16_t backlight_idle_timer;
-bool is_rgblight_on = false;
-bool is_backlight_on = false;
-bool is_rgblight_sleeping = false;
-bool is_bglight_sleeping = false;
+uint16_t backlight_sleep_animation_timer;
+bool is_backlight_on;
+bool is_backlight_sleeping;
+bool is_backlight_sleep_animation;
+uint8_t current_backlight_level;
+#endif
 
 void rgblight_toggle_ok60_hhkb(void)
 {
+#ifdef RGBLIGHT_ENABLE
 	if (is_rgblight_on)
 	{
 		rgblight_disable();
@@ -36,10 +51,12 @@ void rgblight_toggle_ok60_hhkb(void)
 		rgblight_enable();
 	}
 	is_rgblight_on = !is_rgblight_on;
+#endif
 }
 
 void backlight_toggle_ok60_hhkb(void)
 {
+#ifdef BACKLIGHT_ENABLE
 	if (is_backlight_on)
 	{
 		backlight_disable();
@@ -49,18 +66,30 @@ void backlight_toggle_ok60_hhkb(void)
 		backlight_enable();
 	}
 	is_backlight_on = !is_backlight_on;
+#endif
 }
+
+float easeout(float progress) { return progress * (2 - progress); }
+
+float lerp(float x0, float x1, float x) { return x0 + ((x1 - x0) * x); }
 
 void matrix_init_kb(void)
 {
 #ifdef RGBLIGHT_ENABLE
 	is_rgblight_on = true;
-	is_backlight_on = true;
 	is_rgblight_sleeping = false;
-	is_bglight_sleeping = false;
+	is_rgblight_sleep_animation = false;
+	current_rgblight_hue = rgblight_config.hue;
+	current_rgblight_sat = rgblight_config.sat;
+	current_rgblight_val = rgblight_config.val;
+#endif
+#ifdef BACKLIGHT_ENABLE
+	is_backlight_on = true;
+	is_backlight_sleeping = false;
+	is_backlight_sleep_animation = false;
+	current_backlight_level = get_backlight_level();
 	backlight_enable();
 #endif
-
 	matrix_init_user();
 }
 
@@ -68,23 +97,49 @@ void matrix_scan_kb(void)
 {
 	// put your looping keyboard code here
 	// runs every cycle (a lot)
+#ifdef RGBLIGHT_ENABLE
 	if (is_rgblight_on)
 	{
 		if (!is_rgblight_sleeping && (timer_elapsed32(rgblight_idle_timer) > 300000))
 		{
-			rgblight_disable_noeeprom();
+			current_rgblight_hue = rgblight_config.hue;
+			current_rgblight_sat = rgblight_config.sat;
+			current_rgblight_val = rgblight_config.val;
+			rgblight_sleep_animation_timer = timer_read();
 			is_rgblight_sleeping = true;
+			is_rgblight_sleep_animation = true;
+		}
+		if (is_rgblight_sleep_animation)
+		{
+			float p = easeout((float)timer_elapsed(rgblight_sleep_animation_timer) / 1000.0f);
+			rgblight_sethsv(lerp(current_rgblight_hue, 0, p), lerp(current_rgblight_sat, 0, p), lerp(current_rgblight_val, 0, p));
+			if (rgblight_config.hue == 0 && rgblight_config.sat == 0 && rgblight_config.val == 0)
+			{
+				is_rgblight_sleep_animation = false;
+			}
 		}
 	}
-
+#endif
+#ifdef BACKLIGHT_ENABLE
 	if (is_backlight_on)
 	{
-		if (!is_bglight_sleeping && (timer_elapsed(backlight_idle_timer) > 30000))
+		if (!is_backlight_sleeping && (timer_elapsed(backlight_idle_timer) > 30000))
 		{
-			backlight_disable();
-			is_bglight_sleeping = true;
+			current_backlight_level = get_backlight_level();
+			backlight_sleep_animation_timer = timer_read();
+			is_backlight_sleeping = true;
+			is_backlight_sleep_animation = true;
+		}
+		if (is_backlight_sleep_animation)
+		{
+			backlight_level(lerp(current_backlight_level, 0, easeout((float)timer_elapsed(backlight_sleep_animation_timer) / 1000.0f)));
+			if (get_backlight_level() == 0)
+			{
+				is_backlight_sleep_animation = false;
+			}
 		}
 	}
+#endif
 
 	matrix_scan_user();
 }
@@ -95,25 +150,31 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 	// runs for every action, just before processing by the firmware
 
 	// Update the timer for idle
+#ifdef RGBLIGHT_ENABLE
 	if (is_rgblight_on)
 	{
 		if (is_rgblight_sleeping)
 		{
-			rgblight_enable_noeeprom();
+			rgblight_sethsv(current_rgblight_hue, current_rgblight_sat, current_rgblight_val);
 			is_rgblight_sleeping = false;
+			is_rgblight_sleep_animation = false;
 		}
 		rgblight_idle_timer = timer_read32();
 	}
+#endif
 
+#ifdef BACKLIGHT_ENABLE
 	if (is_backlight_on)
 	{
-		if (is_bglight_sleeping)
+		if (is_backlight_sleeping)
 		{
-			backlight_enable();
-			is_bglight_sleeping = false;
+			backlight_level(current_backlight_level);
+			is_backlight_sleeping = false;
+			is_backlight_sleep_animation = false;
 		}
 		backlight_idle_timer = timer_read();
 	}
+#endif
 
 	switch (keycode)
 	{
@@ -126,11 +187,35 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 #endif
 		return false;
 		break;
-	case BACKLIGHT_TOGGLE:
+	case BL_TOGG:
 #ifdef BACKLIGHT_ENABLE
 		if (record->event.pressed)
 		{
 			backlight_toggle_ok60_hhkb();
+		}
+#endif
+		return false;
+		break;
+	case BL_INC:
+#ifdef BACKLIGHT_ENABLE
+		if (record->event.pressed)
+		{
+			if (is_backlight_on)
+			{
+				backlight_increase();
+			}
+		}
+#endif
+		return false;
+		break;
+	case BL_DEC:
+#ifdef BACKLIGHT_ENABLE
+		if (record->event.pressed)
+		{
+			if (is_backlight_on)
+			{
+				backlight_decrease();
+			}
 		}
 #endif
 		return false;
