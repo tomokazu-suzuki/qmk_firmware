@@ -26,8 +26,6 @@ uint16_t rgblight_sleep_animation_timer;
 bool is_rgblight_on;
 bool is_rgblight_sleeping;
 bool is_rgblight_sleep_animation;
-uint8_t current_rgblight_hue;
-uint8_t current_rgblight_sat;
 uint8_t current_rgblight_val;
 #endif
 #ifdef BACKLIGHT_ENABLE
@@ -70,6 +68,7 @@ void backlight_toggle_ok60_hhkb(void)
 }
 
 float easeout(float progress) { return progress * (2 - progress); }
+float easein(float progress) { return pow(progress, 2); }
 
 float lerp(float x0, float x1, float x) { return x0 + ((x1 - x0) * x); }
 
@@ -79,8 +78,6 @@ void matrix_init_kb(void)
 	is_rgblight_on = true;
 	is_rgblight_sleeping = false;
 	is_rgblight_sleep_animation = false;
-	current_rgblight_hue = rgblight_config.hue;
-	current_rgblight_sat = rgblight_config.sat;
 	current_rgblight_val = rgblight_config.val;
 #endif
 #ifdef BACKLIGHT_ENABLE
@@ -100,10 +97,8 @@ void matrix_scan_kb(void)
 #ifdef RGBLIGHT_ENABLE
 	if (is_rgblight_on)
 	{
-		if (!is_rgblight_sleeping && (timer_elapsed32(rgblight_idle_timer) > 300000))
+		if (!is_rgblight_sleeping && (timer_elapsed32(rgblight_idle_timer) > RGBLIGHT_SLEEP_TIME_MS))
 		{
-			current_rgblight_hue = rgblight_config.hue;
-			current_rgblight_sat = rgblight_config.sat;
 			current_rgblight_val = rgblight_config.val;
 			rgblight_sleep_animation_timer = timer_read();
 			is_rgblight_sleeping = true;
@@ -111,9 +106,10 @@ void matrix_scan_kb(void)
 		}
 		if (is_rgblight_sleep_animation)
 		{
-			float p = easeout((float)timer_elapsed(rgblight_sleep_animation_timer) / 1000.0f);
-			rgblight_sethsv(lerp(current_rgblight_hue, 0, p), lerp(current_rgblight_sat, 0, p), lerp(current_rgblight_val, 0, p));
-			if (rgblight_config.hue == 0 && rgblight_config.sat == 0 && rgblight_config.val == 0)
+			float p = easein((float)timer_elapsed(rgblight_sleep_animation_timer) / SLEEP_ANIMATION_DURATION);
+			uint8_t val = lerp(current_rgblight_val, 0, p);
+			rgblight_sethsv(rgblight_config.hue, rgblight_config.sat, val);
+			if (val == 0)
 			{
 				is_rgblight_sleep_animation = false;
 			}
@@ -123,7 +119,7 @@ void matrix_scan_kb(void)
 #ifdef BACKLIGHT_ENABLE
 	if (is_backlight_on)
 	{
-		if (!is_backlight_sleeping && (timer_elapsed(backlight_idle_timer) > 30000))
+		if (!is_backlight_sleeping && (timer_elapsed(backlight_idle_timer) > BACKLIGHT_SLEEP_TIME_MS))
 		{
 			current_backlight_level = get_backlight_level();
 			backlight_sleep_animation_timer = timer_read();
@@ -132,7 +128,7 @@ void matrix_scan_kb(void)
 		}
 		if (is_backlight_sleep_animation)
 		{
-			backlight_level(lerp(current_backlight_level, 0, easeout((float)timer_elapsed(backlight_sleep_animation_timer) / 1000.0f)));
+			backlight_level(lerp(current_backlight_level, 0, easein((float)timer_elapsed(backlight_sleep_animation_timer) / SLEEP_ANIMATION_DURATION)));
 			if (get_backlight_level() == 0)
 			{
 				is_backlight_sleep_animation = false;
@@ -155,7 +151,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 	{
 		if (is_rgblight_sleeping)
 		{
-			rgblight_sethsv(current_rgblight_hue, current_rgblight_sat, current_rgblight_val);
+			rgblight_sethsv(rgblight_config.hue, rgblight_config.sat, current_rgblight_val);
 			is_rgblight_sleeping = false;
 			is_rgblight_sleep_animation = false;
 		}
