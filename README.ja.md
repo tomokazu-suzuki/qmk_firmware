@@ -4,16 +4,18 @@
 
 ## OK60 HHKB
 
-* default
-    - CapslockキーをMO(1) + Tabキーに割り当て
+    * CapslockキーをMO(1) + Tabキーに割り当て
+    * 30秒でバックライトが自動消灯
+    * 5分でRGBライトが自動消灯
 
     `make ok60_hhkb:default`
 
-* idle_timer
-    - 30秒でバックライトが自動消灯
-    - 5分でRGBライトが自動消灯
-    
-    `make ok60_hhkb:idle_timer`
+    * アイドルタイマーが不要な場合は、下記のようにrules.mkのIDLE_TIMER_ENABLEをコメントアウトしてください。 
+
+        * バックライトとRGBライトのアイドルタイマーは無効です。
+            ```
+            #IDLE_TIMER_ENABLE = yes
+            ```  
 
 ## Keymap
 

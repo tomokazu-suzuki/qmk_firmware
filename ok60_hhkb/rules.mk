@@ -64,3 +64,9 @@ RGBLIGHT_ENABLE = yes  # Enable the RGB backlight
 # BLUETOOTH_ENABLE = yes	# Enable Bluetooth with the Adafruit EZ-Key HID
 
 LAYOUTS = 60_hhkb
+
+IDLE_TIMER_ENABLE = yes
+
+ifeq ($(strip $(IDLE_TIMER_ENABLE)), yes)
+    OPT_DEFS += -DIDLE_TIMER_ENABLE
+endif
