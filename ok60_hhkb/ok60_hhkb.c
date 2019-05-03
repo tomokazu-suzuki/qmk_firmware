@@ -91,7 +91,8 @@ void matrix_init_kb(void)
     is_backlight_sleeping = false;
     is_backlight_sleep_animation = false;
     is_backlight_resume_animation = false;
-    current_backlight_level = get_backlight_level();
+    backlight_level(BACKLIGHT_INIT_LEVEL);
+    current_backlight_level = BACKLIGHT_INIT_LEVEL;
 #endif
     matrix_init_user();
 }
