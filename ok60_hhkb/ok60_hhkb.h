@@ -17,5 +17,11 @@
 	{ K400,  K401,  K402,  KC_NO, KC_NO, KC_NO, K406,  KC_NO, KC_NO, KC_NO, K410,  K411,  K412,  K413,  KC_NO }  \
 }
 
+typedef enum { 
+	SLEEP    = 0,
+	SLEEPING = 1,
+	RESUME   = 2,
+	RESUMING = 3 
+} ok60_hhkb_light_status_t;
 
 #endif
