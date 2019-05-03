@@ -1,6 +1,11 @@
 #include "ok60_hhkb.h"
 #ifdef IDLE_TIMER_ENABLE
+#ifdef RGBLIGHT_ENABLE
 extern rgblight_config_t rgblight_config;
+#endif
+#ifdef BACKLIGHT_ENABLE
+extern backlight_config_t backlight_config;
+#endif
 
 // Variables for idle timer
 #ifdef RGBLIGHT_ENABLE
@@ -56,6 +61,17 @@ void backlight_toggle_ok60_hhkb(void)
 #endif
 }
 
+void backlight_level_noeeprom(uint8_t level)
+{
+#ifdef BACKLIGHT_ENABLE
+    if (level > BACKLIGHT_LEVELS)
+        level = BACKLIGHT_LEVELS;
+    backlight_config.level = level;
+    backlight_config.enable = !!backlight_config.level;
+    backlight_set(backlight_config.level);
+#endif
+}
+
 float easeout(float progress) { return progress * (2 - progress); }
 float easein(float progress) { return pow(progress, 2); }
 
@@ -75,7 +91,8 @@ void matrix_init_kb(void)
     is_backlight_sleeping = false;
     is_backlight_sleep_animation = false;
     is_backlight_resume_animation = false;
-    current_backlight_level = get_backlight_level();
+    backlight_level(BACKLIGHT_INIT_LEVEL);
+    current_backlight_level = BACKLIGHT_INIT_LEVEL;
 #endif
     matrix_init_user();
 }
@@ -142,7 +159,7 @@ void matrix_scan_kb(void)
             uint8_t val = lerp(current_backlight_level, 0, easein((float)timer_elapsed(backlight_sleep_animation_timer) / SLEEP_ANIMATION_DURATION));
             if (val != tmp_backlight_val)
             {
-                backlight_level(val);
+                backlight_level_noeeprom(val);
                 tmp_backlight_val = val;
             }
             if (val == 0)
@@ -157,7 +174,7 @@ void matrix_scan_kb(void)
             uint8_t val = lerp(0, current_backlight_level, easeout((float)timer_elapsed(backlight_resume_animation_timer) / RESUME_ANIMATION_DURATION));
             if (val != tmp_backlight_val)
             {
-                backlight_level(val);
+                backlight_level_noeeprom(val);
                 tmp_backlight_val = val;
             }
             if (val == current_backlight_level)
@@ -231,7 +248,16 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
         {
             if (is_backlight_on)
             {
-                backlight_increase();
+                uint8_t level = get_backlight_level();
+                if (level + BACKLIGHT_LEVEL_STEP > BACKLIGHT_LEVELS)
+                {
+                    level = BACKLIGHT_LEVELS;
+                }
+                else
+                {
+                    level += BACKLIGHT_LEVEL_STEP;
+                }
+                backlight_level(level);
             }
         }
 #endif
@@ -243,7 +269,16 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
         {
             if (is_backlight_on)
             {
-                backlight_decrease();
+                uint8_t level = get_backlight_level();
+                if (level - BACKLIGHT_LEVEL_STEP < 0)
+                {
+                    level = 0;
+                }
+                else
+                {
+                    level -= BACKLIGHT_LEVEL_STEP;
+                }
+                backlight_level(level);
             }
         }
 #endif

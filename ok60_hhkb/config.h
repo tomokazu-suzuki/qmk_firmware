@@ -47,7 +47,7 @@
 //#define MATRIX_HAS_GHOST
 
 /* number of backlight levels */
-#define BACKLIGHT_LEVELS 5
+#define BACKLIGHT_LEVELS 127
 
 /* Mechanical locking support. Use KC_LCAP, KC_LNUM or KC_LSCR instead in keymap */
 #define LOCKING_SUPPORT_ENABLE
@@ -67,5 +67,7 @@
 #define BACKLIGHT_SLEEP_TIME_MS 30000
 #define SLEEP_ANIMATION_DURATION 800.0f
 #define RESUME_ANIMATION_DURATION 800.0f
+#define BACKLIGHT_INIT_LEVEL 64
+#define BACKLIGHT_LEVEL_STEP 16
 
 #endif
