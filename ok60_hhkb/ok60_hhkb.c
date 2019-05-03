@@ -231,7 +231,16 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
         {
             if (is_backlight_on)
             {
-                backlight_increase();
+                uint8_t level = get_backlight_level();
+                if (level + BACKLIGHT_LEVEL_STEP > BACKLIGHT_LEVELS)
+                {
+                    level = BACKLIGHT_LEVELS;
+                }
+                else
+                {
+                    level += BACKLIGHT_LEVEL_STEP;
+                }
+                backlight_level(level);
             }
         }
 #endif
@@ -243,7 +252,16 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
         {
             if (is_backlight_on)
             {
-                backlight_decrease();
+                uint8_t level = get_backlight_level();
+                if (level - BACKLIGHT_LEVEL_STEP < 0)
+                {
+                    level = 0;
+                }
+                else
+                {
+                    level -= BACKLIGHT_LEVEL_STEP;
+                }
+                backlight_level(level);
             }
         }
 #endif
