@@ -1,6 +1,11 @@
 #include "ok60_hhkb.h"
 #ifdef IDLE_TIMER_ENABLE
+#ifdef RGBLIGHT_ENABLE
 extern rgblight_config_t rgblight_config;
+#endif
+#ifdef BACKLIGHT_ENABLE
+extern backlight_config_t backlight_config;
+#endif
 
 // Variables for idle timer
 #ifdef RGBLIGHT_ENABLE
@@ -53,6 +58,17 @@ void backlight_toggle_ok60_hhkb(void)
         backlight_enable();
     }
     is_backlight_on = !is_backlight_on;
+#endif
+}
+
+void backlight_level_noeeprom(uint8_t level)
+{
+#ifdef BACKLIGHT_ENABLE
+    if (level > BACKLIGHT_LEVELS)
+        level = BACKLIGHT_LEVELS;
+    backlight_config.level = level;
+    backlight_config.enable = !!backlight_config.level;
+    backlight_set(backlight_config.level);
 #endif
 }
 
@@ -142,7 +158,7 @@ void matrix_scan_kb(void)
             uint8_t val = lerp(current_backlight_level, 0, easein((float)timer_elapsed(backlight_sleep_animation_timer) / SLEEP_ANIMATION_DURATION));
             if (val != tmp_backlight_val)
             {
-                backlight_level(val);
+                backlight_level_noeeprom(val);
                 tmp_backlight_val = val;
             }
             if (val == 0)
@@ -157,7 +173,7 @@ void matrix_scan_kb(void)
             uint8_t val = lerp(0, current_backlight_level, easeout((float)timer_elapsed(backlight_resume_animation_timer) / RESUME_ANIMATION_DURATION));
             if (val != tmp_backlight_val)
             {
-                backlight_level(val);
+                backlight_level_noeeprom(val);
                 tmp_backlight_val = val;
             }
             if (val == current_backlight_level)
