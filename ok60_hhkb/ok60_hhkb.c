@@ -82,13 +82,13 @@ void matrix_init_kb(void)
 #ifdef RGBLIGHT_ENABLE
     is_rgblight_on = true;
     hhkb_rgblight_status = RESUME;
-    is_rgblight_resume_trigger = false;
+    is_rgblight_resume_trigger = true;
     rgblight_resume_animation_start_val = 0;
 #endif
 #ifdef BACKLIGHT_ENABLE
     is_backlight_on = true;
     hhkb_backlight_status = RESUME;
-    is_backlight_resume_trigger = false;
+    is_backlight_resume_trigger = true;
     backlight_resume_animation_start_level = 0;
 #endif
     matrix_init_user();
@@ -116,6 +116,10 @@ void matrix_scan_kb(void)
                 hhkb_rgblight_status = RESUMING;
                 rgblight_resume_animation_timer = timer_read();
             }
+            else if (rgblight_config.val > 0)
+            {
+                rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, 0);
+            }
             break;
         case SLEEPING:
             if (is_rgblight_resume_trigger)
@@ -133,7 +137,7 @@ void matrix_scan_kb(void)
                 }
                 if (val == 0)
                 {
-                    rgblight_sethsv(rgblight_config.hue, rgblight_config.sat, 0);
+                    rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, 0);
                     hhkb_rgblight_status = SLEEP;
                 }
             }
@@ -155,7 +159,7 @@ void matrix_scan_kb(void)
             }
             if (val == current_rgblight_val)
             {
-                rgblight_sethsv(rgblight_config.hue, rgblight_config.sat, current_rgblight_val);
+                rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, current_rgblight_val);
                 hhkb_rgblight_status = RESUME;
             }
             break;
@@ -187,6 +191,10 @@ void matrix_scan_kb(void)
                 hhkb_backlight_status = RESUMING;
                 backlight_resume_animation_timer = timer_read();
             }
+            else if (get_backlight_level() > 0)
+            {
+                backlight_level_noeeprom(0);
+            }
             break;
         case SLEEPING:
             if (is_backlight_resume_trigger)
@@ -204,7 +212,7 @@ void matrix_scan_kb(void)
                 }
                 if (val == 0)
                 {
-                    backlight_level(0);
+                    backlight_level_noeeprom(0);
                     hhkb_backlight_status = SLEEP;
                 }
             }
@@ -226,7 +234,7 @@ void matrix_scan_kb(void)
             }
             if (val == current_backlight_level)
             {
-                backlight_level(current_backlight_level);
+                backlight_level_noeeprom(current_backlight_level);
                 hhkb_backlight_status = RESUME;
             }
             break;
