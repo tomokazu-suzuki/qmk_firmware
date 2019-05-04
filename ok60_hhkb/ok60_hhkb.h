@@ -24,4 +24,16 @@ typedef enum {
 	RESUMING = 3 
 } ok60_hhkb_light_status_t;
 
+typedef struct {
+	uint32_t idle_timer;
+	uint16_t sleep_animation_timer;
+	uint16_t resume_animation_timer;
+	bool is_on;
+	uint8_t resume_animation_start_level;
+	uint8_t current_level;
+	uint8_t tmp_val;
+	ok60_hhkb_light_status_t status;
+	bool is_resume_trigger;
+} ok60_hhkb_light_t;
+
 #endif

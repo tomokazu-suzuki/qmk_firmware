@@ -9,32 +9,16 @@ extern backlight_config_t backlight_config;
 
 // Variables for idle timer
 #ifdef RGBLIGHT_ENABLE
-uint32_t rgblight_idle_timer;
-uint16_t rgblight_sleep_animation_timer;
-uint16_t rgblight_resume_animation_timer;
-bool is_rgblight_on;
-uint8_t rgblight_resume_animation_start_val;
-uint8_t current_rgblight_val;
-uint8_t tmp_rgblight_val;
-ok60_hhkb_light_status_t hhkb_rgblight_status;
-bool is_rgblight_resume_trigger;
+ok60_hhkb_light_t hhkb_rgblight;
 #endif
 #ifdef BACKLIGHT_ENABLE
-uint32_t backlight_idle_timer;
-uint16_t backlight_sleep_animation_timer;
-uint16_t backlight_resume_animation_timer;
-bool is_backlight_on;
-uint8_t backlight_resume_animation_start_level;
-uint8_t current_backlight_level;
-uint8_t tmp_backlight_val;
-ok60_hhkb_light_status_t hhkb_backlight_status;
-bool is_backlight_resume_trigger;
+ok60_hhkb_light_t hhkb_backlight;
 #endif
 
 void rgblight_toggle_ok60_hhkb(void)
 {
 #ifdef RGBLIGHT_ENABLE
-    if (is_rgblight_on)
+    if (hhkb_rgblight.is_on)
     {
         rgblight_disable();
     }
@@ -42,14 +26,14 @@ void rgblight_toggle_ok60_hhkb(void)
     {
         rgblight_enable();
     }
-    is_rgblight_on = !is_rgblight_on;
+    hhkb_rgblight.is_on = !hhkb_rgblight.is_on;
 #endif
 }
 
 void backlight_toggle_ok60_hhkb(void)
 {
 #ifdef BACKLIGHT_ENABLE
-    if (is_backlight_on)
+    if (hhkb_backlight.is_on)
     {
         backlight_disable();
     }
@@ -57,7 +41,7 @@ void backlight_toggle_ok60_hhkb(void)
     {
         backlight_enable();
     }
-    is_backlight_on = !is_backlight_on;
+    hhkb_backlight.is_on = !hhkb_backlight.is_on;
 #endif
 }
 
@@ -80,16 +64,16 @@ float lerp(float x0, float x1, float x) { return x0 + ((x1 - x0) * x); }
 void matrix_init_kb(void)
 {
 #ifdef RGBLIGHT_ENABLE
-    is_rgblight_on = true;
-    hhkb_rgblight_status = RESUME;
-    is_rgblight_resume_trigger = true;
-    rgblight_resume_animation_start_val = 0;
+    hhkb_rgblight.is_on = true;
+    hhkb_rgblight.status = RESUME;
+    hhkb_rgblight.is_resume_trigger = true;
+    hhkb_rgblight.resume_animation_start_level = 0;
 #endif
 #ifdef BACKLIGHT_ENABLE
-    is_backlight_on = true;
-    hhkb_backlight_status = RESUME;
-    is_backlight_resume_trigger = true;
-    backlight_resume_animation_start_level = 0;
+    hhkb_backlight.is_on = true;
+    hhkb_backlight.status = RESUME;
+    hhkb_backlight.is_resume_trigger = true;
+    hhkb_backlight.resume_animation_start_level = 0;
 #endif
     matrix_init_user();
 }
@@ -99,22 +83,22 @@ void matrix_scan_kb(void)
     // put your looping keyboard code here
     // runs every cycle (a lot)
 #ifdef RGBLIGHT_ENABLE
-    if (is_rgblight_on)
+    if (hhkb_rgblight.is_on)
     {
-        if (is_rgblight_resume_trigger)
+        if (hhkb_rgblight.is_resume_trigger)
         {
-            rgblight_resume_animation_start_val = rgblight_config.val;
-            rgblight_idle_timer = timer_read32();
+            hhkb_rgblight.resume_animation_start_level = rgblight_config.val;
+            hhkb_rgblight.idle_timer = timer_read32();
         }
 
-        switch (hhkb_rgblight_status)
+        switch (hhkb_rgblight.status)
         {
             uint8_t val;
         case SLEEP:
-            if (is_rgblight_resume_trigger)
+            if (hhkb_rgblight.is_resume_trigger)
             {
-                hhkb_rgblight_status = RESUMING;
-                rgblight_resume_animation_timer = timer_read();
+                hhkb_rgblight.status = RESUMING;
+                hhkb_rgblight.resume_animation_timer = timer_read();
             }
             else if (rgblight_config.val > 0)
             {
@@ -122,74 +106,74 @@ void matrix_scan_kb(void)
             }
             break;
         case SLEEPING:
-            if (is_rgblight_resume_trigger)
+            if (hhkb_rgblight.is_resume_trigger)
             {
-                hhkb_rgblight_status = RESUMING;
-                rgblight_resume_animation_timer = timer_read();
+                hhkb_rgblight.status = RESUMING;
+                hhkb_rgblight.resume_animation_timer = timer_read();
             }
             else
             {
-                val = roundf(lerp(current_rgblight_val, 0, easein((float)timer_elapsed(rgblight_sleep_animation_timer) / SLEEP_ANIMATION_DURATION)));
-                if (val != tmp_rgblight_val)
+                val = roundf(lerp(hhkb_rgblight.current_level, 0, easein((float)timer_elapsed(hhkb_rgblight.sleep_animation_timer) / SLEEP_ANIMATION_DURATION)));
+                if (val != hhkb_rgblight.tmp_val)
                 {
                     rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, val);
-                    tmp_rgblight_val = val;
+                    hhkb_rgblight.tmp_val = val;
                 }
                 if (val == 0)
                 {
                     rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, 0);
-                    hhkb_rgblight_status = SLEEP;
+                    hhkb_rgblight.status = SLEEP;
                 }
             }
             break;
         case RESUME:
-            if (timer_elapsed32(rgblight_idle_timer) > RGBLIGHT_SLEEP_TIME_MS)
+            if (timer_elapsed32(hhkb_rgblight.idle_timer) > RGBLIGHT_SLEEP_TIME_MS)
             {
-                hhkb_rgblight_status = SLEEPING;
-                current_rgblight_val = rgblight_config.val;
-                rgblight_sleep_animation_timer = timer_read();
+                hhkb_rgblight.status = SLEEPING;
+                hhkb_rgblight.current_level = rgblight_config.val;
+                hhkb_rgblight.sleep_animation_timer = timer_read();
             }
             break;
         case RESUMING:
-            val = roundf(lerp(rgblight_resume_animation_start_val, current_rgblight_val, easein((float)timer_elapsed(rgblight_resume_animation_timer) / RESUME_ANIMATION_DURATION)));
-            if (val != tmp_rgblight_val)
+            val = roundf(lerp(hhkb_rgblight.resume_animation_start_level, hhkb_rgblight.current_level, easein((float)timer_elapsed(hhkb_rgblight.resume_animation_timer) / RESUME_ANIMATION_DURATION)));
+            if (val != hhkb_rgblight.tmp_val)
             {
                 rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, val);
-                tmp_rgblight_val = val;
+                hhkb_rgblight.tmp_val = val;
             }
-            if (val == current_rgblight_val)
+            if (val == hhkb_rgblight.current_level)
             {
-                rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, current_rgblight_val);
-                hhkb_rgblight_status = RESUME;
+                rgblight_sethsv_noeeprom(rgblight_config.hue, rgblight_config.sat, hhkb_rgblight.current_level);
+                hhkb_rgblight.status = RESUME;
             }
             break;
         default:
             break;
         }
 
-        if (is_rgblight_resume_trigger)
+        if (hhkb_rgblight.is_resume_trigger)
         {
-            is_rgblight_resume_trigger = false;
+            hhkb_rgblight.is_resume_trigger = false;
         }
     }
 #endif
 #ifdef BACKLIGHT_ENABLE
-    if (is_backlight_on)
+    if (hhkb_backlight.is_on)
     {
-        if (is_backlight_resume_trigger)
+        if (hhkb_backlight.is_resume_trigger)
         {
-            backlight_resume_animation_start_level = get_backlight_level();
-            backlight_idle_timer = timer_read32();
+            hhkb_backlight.resume_animation_start_level = get_backlight_level();
+            hhkb_backlight.idle_timer = timer_read32();
         }
 
-        switch (hhkb_backlight_status)
+        switch (hhkb_backlight.status)
         {
             uint8_t val;
         case SLEEP:
-            if (is_backlight_resume_trigger)
+            if (hhkb_backlight.is_resume_trigger)
             {
-                hhkb_backlight_status = RESUMING;
-                backlight_resume_animation_timer = timer_read();
+                hhkb_backlight.status = RESUMING;
+                hhkb_backlight.resume_animation_timer = timer_read();
             }
             else if (get_backlight_level() > 0)
             {
@@ -197,54 +181,54 @@ void matrix_scan_kb(void)
             }
             break;
         case SLEEPING:
-            if (is_backlight_resume_trigger)
+            if (hhkb_backlight.is_resume_trigger)
             {
-                hhkb_backlight_status = RESUMING;
-                backlight_resume_animation_timer = timer_read();
+                hhkb_backlight.status = RESUMING;
+                hhkb_backlight.resume_animation_timer = timer_read();
             }
             else
             {
-                val = roundf(lerp(current_backlight_level, 0, easein((float)timer_elapsed(backlight_sleep_animation_timer) / SLEEP_ANIMATION_DURATION)));
-                if (val != tmp_backlight_val)
+                val = roundf(lerp(hhkb_backlight.current_level, 0, easein((float)timer_elapsed(hhkb_backlight.sleep_animation_timer) / SLEEP_ANIMATION_DURATION)));
+                if (val != hhkb_backlight.tmp_val)
                 {
                     backlight_level_noeeprom(val);
-                    tmp_backlight_val = val;
+                    hhkb_backlight.tmp_val = val;
                 }
                 if (val == 0)
                 {
                     backlight_level_noeeprom(0);
-                    hhkb_backlight_status = SLEEP;
+                    hhkb_backlight.status = SLEEP;
                 }
             }
             break;
         case RESUME:
-            if (timer_elapsed32(backlight_idle_timer) > BACKLIGHT_SLEEP_TIME_MS)
+            if (timer_elapsed32(hhkb_backlight.idle_timer) > BACKLIGHT_SLEEP_TIME_MS)
             {
-                hhkb_backlight_status = SLEEPING;
-                current_backlight_level = get_backlight_level();
-                backlight_sleep_animation_timer = timer_read();
+                hhkb_backlight.status = SLEEPING;
+                hhkb_backlight.current_level = get_backlight_level();
+                hhkb_backlight.sleep_animation_timer = timer_read();
             }
             break;
         case RESUMING:
-            val = roundf(lerp(backlight_resume_animation_start_level, current_backlight_level, easeout((float)timer_elapsed(backlight_resume_animation_timer) / RESUME_ANIMATION_DURATION)));
-            if (val != tmp_backlight_val)
+            val = roundf(lerp(hhkb_backlight.resume_animation_start_level, hhkb_backlight.current_level, easeout((float)timer_elapsed(hhkb_backlight.resume_animation_timer) / RESUME_ANIMATION_DURATION)));
+            if (val != hhkb_backlight.tmp_val)
             {
                 backlight_level_noeeprom(val);
-                tmp_backlight_val = val;
+                hhkb_backlight.tmp_val = val;
             }
-            if (val == current_backlight_level)
+            if (val == hhkb_backlight.current_level)
             {
-                backlight_level_noeeprom(current_backlight_level);
-                hhkb_backlight_status = RESUME;
+                backlight_level_noeeprom(hhkb_backlight.current_level);
+                hhkb_backlight.status = RESUME;
             }
             break;
         default:
             break;
         }
 
-        if (is_backlight_resume_trigger)
+        if (hhkb_backlight.is_resume_trigger)
         {
-            is_backlight_resume_trigger = false;
+            hhkb_backlight.is_resume_trigger = false;
         }
     }
 #endif
@@ -259,16 +243,16 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 
     // Update the timer for idle
 #ifdef RGBLIGHT_ENABLE
-    if (is_rgblight_on)
+    if (hhkb_rgblight.is_on)
     {
-        is_rgblight_resume_trigger = true;
+        hhkb_rgblight.is_resume_trigger = true;
     }
 #endif
 
 #ifdef BACKLIGHT_ENABLE
-    if (is_backlight_on)
+    if (hhkb_backlight.is_on)
     {
-        is_backlight_resume_trigger = true;
+        hhkb_backlight.is_resume_trigger = true;
     }
 #endif
 
@@ -296,7 +280,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 #ifdef BACKLIGHT_ENABLE
         if (record->event.pressed)
         {
-            if (is_backlight_on)
+            if (hhkb_backlight.is_on)
             {
                 uint8_t level = get_backlight_level();
                 if (level + BACKLIGHT_LEVEL_STEP > BACKLIGHT_LEVELS)
@@ -317,7 +301,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record)
 #ifdef BACKLIGHT_ENABLE
         if (record->event.pressed)
         {
-            if (is_backlight_on)
+            if (hhkb_backlight.is_on)
             {
                 uint8_t level = get_backlight_level();
                 if (level - BACKLIGHT_LEVEL_STEP < 0)
